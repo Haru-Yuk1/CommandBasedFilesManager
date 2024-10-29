@@ -120,4 +120,30 @@ public class HandleCommand {
         fileService.moveFile(arg1,arg2);
     }
 
+
+
+    //加密操作
+    public static void handleEncrypt(FileService fileService,String arg1,String arg2){
+        fileService.encryptFile(arg1,arg2);
+    }
+
+    //解密操作
+    public static void handleDecrypt(FileService fileService,String arg1,String arg2){
+        fileService.decryptFile(arg1,arg2);
+    }
+
+    //压缩操作
+    public static void handleZip(DirectoryService directoryService,String arg1,String arg2){
+        directoryService.zipDirectory(arg1,arg2);
+    }
+
+    //解压操作
+    public static void handleUnzip(DirectoryService directoryService,String arg1,String arg2){
+        if (arg2.isEmpty()){
+            arg2=directoryService.getWorkingDirectory();
+        }
+        directoryService.unzipDirectory(arg1,arg2);
+    }
+
+
 }

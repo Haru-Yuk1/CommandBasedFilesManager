@@ -66,4 +66,25 @@ public class FileService {
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
         getFileRepository().moveFile(oldPath, newPath);
     }
+
+
+    public void unzipFile(String sourceFilePath, String destinationFilePath) {
+        Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceFilePath);   //原路径
+        Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
+
+//        getFileRepository().unzipFile(String.valueOf(oldPath), String.valueOf(newPath));
+    }
+
+    // 加密文件
+    public void encryptFile(String sourceFilePath, String destinationFilePath) {
+        Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceFilePath);   //原路径
+        Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
+        getFileRepository().encryptFile(String.valueOf(oldPath), String.valueOf(newPath));
+    }
+    // 解密文件
+    public void decryptFile(String sourceFilePath, String destinationFilePath) {
+        Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceFilePath);   //原路径
+        Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
+        getFileRepository().decryptFile(String.valueOf(oldPath), String.valueOf(newPath));
+    }
 }

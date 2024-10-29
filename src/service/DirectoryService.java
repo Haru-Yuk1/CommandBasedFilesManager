@@ -128,4 +128,17 @@ public class DirectoryService {
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationDirectoryPath);   //目标路径
         getFileRepository().copyDirectory(oldPath, newPath);
     }
+
+
+    // 压缩操作
+    public void zipDirectory(String sourceDirectoryPath, String destinationDirectoryPath) {
+        Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceDirectoryPath);   //原路径
+        Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationDirectoryPath);   //目标路径
+        getFileRepository().zipDirectory(String.valueOf(oldPath), String.valueOf(newPath));
+    }
+    public void unzipDirectory(String sourceDirectoryPath, String destinationDirectoryPath) {
+        Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceDirectoryPath);   //原路径
+        Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationDirectoryPath);   //目标路径
+        getFileRepository().unzip(String.valueOf(oldPath), String.valueOf(newPath));
+    }
 }

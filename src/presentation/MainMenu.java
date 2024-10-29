@@ -203,6 +203,43 @@ public class MainMenu extends SystemData {
                     }
                     break;
 
+                case "zip":
+                    if (arg1 != null && arg2 != null) {
+                        handleZip(directoryService, arg1, arg2);
+                    } else if (arg1 == null) {
+                        System.out.println("请指定源文件路径");
+                    } else {
+                        System.out.println("请指定目标文件路径");
+                    }
+                    break;
+
+                case "unzip":
+                    if (arg1 != null && arg2 != null) {
+                        handleUnzip(directoryService, arg1, arg2);
+                    } else if (arg1 == null) {
+                        System.out.println("请指定源文件路径");
+                    } else {
+                        handleUnzip(directoryService, arg1, "");
+                    }
+                    break;
+                case "encrypt":
+                    if (arg1 != null && arg2 != null) {
+                        handleEncrypt(fileService, arg1, arg2);
+                    } else if (arg1 == null) {
+                        System.out.println("请指定源文件路径");
+                    } else {
+                        System.out.println("请指定目标文件路径");
+                    }
+                    break;
+                case "decrypt":
+                    if (arg1 != null && arg2 != null) {
+                        handleDecrypt(fileService, arg1, arg2);
+                    } else if (arg1 == null) {
+                        System.out.println("请指定源文件路径");
+                    } else {
+                        System.out.println("请指定目标文件路径");
+                    }
+                    break;
                 case "exit":
                     showExitSystem();
                     System.exit(0);

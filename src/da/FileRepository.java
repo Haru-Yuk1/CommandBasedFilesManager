@@ -3,6 +3,9 @@ package da;
 
 import utils.SimpleUtils;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.net.URLConnection;
 import java.nio.file.Files;
@@ -12,13 +15,13 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.Locale;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
+
+import static utils.KeyUtils.generateSecretKey;
 
 /*
 *FileRepository 提供底层文件系统操作的实现，直接与文件系统交互，
@@ -26,6 +29,9 @@ import java.util.zip.ZipOutputStream;
 *
 * */
 public class FileRepository {
+
+    protected final String secretKey = generateSecretKey();
+
     // 判断路径是否为目录
     public boolean isDirectory(String path) {
         File directory = new File(path);
@@ -442,55 +448,182 @@ public class FileRepository {
         }
     }
 
+    //加密操作
 
+    // 加密文件
+    public void encryptFile(String sourcePath, String destinationPath) {
+        try {
+            SecretKey secretKey = decodeKeyFromString(this.secretKey);
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey);
 
-//    //压缩文件或文件夹 使用zip
-//    public void compressFile(Path sourcePath, Path zipPath) {
+            try (FileInputStream fis = new FileInputStream(sourcePath);
+                 FileOutputStream fos = new FileOutputStream(destinationPath)) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = fis.read(buffer)) != -1) {
+                    byte[] output = cipher.update(buffer, 0, length);
+                    if (output != null) {
+                        fos.write(output);
+                    }
+                }
+                byte[] output = cipher.doFinal();
+                if (output != null) {
+                    fos.write(output);
+                }
+            }
+            System.out.println("文件加密成功: " + destinationPath);
+        } catch (Exception e) {
+            System.out.println("文件加密失败: " + e.getMessage());
+        }
+    }
+
+    // 解密文件
+    public void decryptFile(String sourcePath, String destinationPath) {
+        try {
+            SecretKey secretKey = decodeKeyFromString(this.secretKey);
+            Cipher cipher = Cipher.getInstance("AES");
+            cipher.init(Cipher.DECRYPT_MODE, secretKey);
+
+            try (FileInputStream fis = new FileInputStream(sourcePath);
+                 FileOutputStream fos = new FileOutputStream(destinationPath)) {
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = fis.read(buffer)) != -1) {
+                    byte[] output = cipher.update(buffer, 0, length);
+                    if (output != null) {
+                        fos.write(output);
+                    }
+                }
+                byte[] output = cipher.doFinal();
+                if (output != null) {
+                    fos.write(output);
+                }
+            }
+            System.out.println("文件解密成功: " + destinationPath);
+        } catch (Exception e) {
+            System.out.println("文件解密失败: " + e.getMessage());
+        }
+    }
+
+    // 从字符串解码密钥
+    private static SecretKey decodeKeyFromString(String keyStr) {
+        byte[] decodedKey = Base64.getDecoder().decode(keyStr);
+        return new SecretKeySpec(decodedKey, 0, decodedKey.length, "AES");
+    }
+
+    //压缩文件或文件夹 使用zip
+//    public void compressFile() {
 //        try {
 //            long startTime = System.currentTimeMillis();
-//            try(ZipOutputStream zos =new ZipOutputStream(new FileOutputStream(String.valueOf(zipPath)))){
-//                if(Files.isDirectory(sourcePath)){
 //
-//                }else {
-//
-//                }
-//            }
 //            long endTime = System.currentTimeMillis();
-//            System.out.println("文件夹压缩成功: " + destinationPath);
+//            System.out.println("压缩成功: " + zipPath);
 //            System.out.println("压缩时间: " + (endTime - startTime) + " 毫秒");
 //        } catch (IOException e) {
 //            System.out.println("文件夹压缩失败: " + e.getMessage());
 //        }
 //    }
-//
-//    // 压缩文件夹
-//    private void zipDirectory(Path sourceDir, String fileName, ZipOutputStream zos) throws IOException {
-//        Files.walk(sourceDir).forEach(path -> {
-//            try {
-//                if (Files.isDirectory(path)) {
-//                    // 如果是目录，则添加到 ZIP 中，不包括路径
-//
-//                    return;
-//                }
-//                //
-//                zipFile(path, zos);
-//            } catch (IOException e) {
-//                System.out.println("压缩目录时出错: " + e.getMessage());
-//            }
-//        });
-//    }
-//    // 压缩单个文件
-//    private void zipFile(Path file, ZipOutputStream zos) throws IOException {
-//        try (InputStream is = Files.newInputStream(file)) {
-//            ZipEntry zipEntry = new ZipEntry(file.toString());
-//            zos.putNextEntry(zipEntry);
-//            byte[] buffer = new byte[1024];
-//            int length;
-//            while ((length = is.read(buffer)) >= 0) {
-//                zos.write(buffer, 0, length);
-//            }
-//            zos.closeEntry();
+
+    // 压缩文件夹
+    public void zipDirectory(String sourcePath, String destinationPath)  {
+        File sourceDir=new File(sourcePath);
+        File destinationDir=new File(destinationPath);
+        if (!destinationDir.exists()) {
+            System.out.println("文件夹不存在，创建新的文件夹");
+            boolean created = destinationDir.getParentFile().mkdir();
+            System.out.println(created ? "文件夹创建成功" : "文件夹创建失败");
+        }
+        try(ZipOutputStream zos =new ZipOutputStream(new FileOutputStream(destinationDir))){
+            zipDirFile(sourceDir, sourceDir.getName(), zos);
+            System.out.println("文件夹压缩成功: " + destinationPath);
+        } catch (IOException e) {
+            System.out.println("文件夹压缩失败: " + e.getMessage());
+        }
+    }
+    //
+    private static void zipDirFile(File fileToZip, String fileName, ZipOutputStream zos) throws IOException {
+        if (fileToZip.isHidden()) {
+            return;
+        }
+        if (fileToZip.isDirectory()) {
+            if (fileName.endsWith("/")) {
+                zos.putNextEntry(new ZipEntry(fileName));
+                zos.closeEntry();
+            } else {
+                zos.putNextEntry(new ZipEntry(fileName + "/"));
+                zos.closeEntry();
+            }
+            File[] children = fileToZip.listFiles();
+            if (children != null) {
+                for (File childFile : children) {
+                    zipDirFile(childFile, fileName + "/" + childFile.getName(), zos);
+                }
+            }
+            return;
+        }
+        try (FileInputStream fis = new FileInputStream(fileToZip)) {
+            ZipEntry zipEntry = new ZipEntry(fileName);
+            zos.putNextEntry(zipEntry);
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = fis.read(buffer)) >= 0) {
+                zos.write(buffer, 0, length);
+            }
+        }
+    }
+
+
+
+    public void unzip(String sourcePath, String destinationPath) {
+        File sourceFile = new File(sourcePath);
+        //如果目标文件夹不存在，创建新的文件夹
+        File destinationDir = new File(destinationPath);
+        if (!destinationDir.exists()) {
+            System.out.println("文件夹不存在，创建新的文件夹");
+            boolean created = destinationDir.getParentFile().mkdir();
+            System.out.println(created ? "文件夹创建成功" : "文件夹创建失败");
+        }
+        try (ZipInputStream zis = new ZipInputStream(new FileInputStream(sourceFile))) {
+            ZipEntry zipEntry = zis.getNextEntry();
+            while (zipEntry != null) {
+                File newFile = new File(destinationPath + File.separator + zipEntry.getName());
+                if (zipEntry.isDirectory()) {
+                    if (!newFile.isDirectory() && !newFile.mkdirs()) {
+                        throw new IOException("创建文件失败：" + newFile);
+                    }
+                } else {
+                    File parent = newFile.getParentFile();
+                    if (!parent.isDirectory() && !parent.mkdirs()) {
+                        throw new IOException("创建文件夹失败：" + parent);
+                    }
+                    try (FileOutputStream fos = new FileOutputStream(newFile)) {
+                        byte[] buffer = new byte[1024];
+                        int length;
+                        while ((length = zis.read(buffer)) >= 0) {
+                            fos.write(buffer, 0, length);
+                        }
+                    }
+                }
+                zipEntry = zis.getNextEntry();
+            }
+            System.out.println("文件解压成功: " + destinationPath);
+        } catch (IOException e) {
+            System.out.println("文件解压失败: " + e.getMessage());
+        }
+    }
+
+//    public static void main(String args[]){
+//        Path file = Path.of("E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\d1\\100.txt");
+//        Path zipFile = Path.of("E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\d1\\100.zip");
+//        try(ZipOutputStream zos =new ZipOutputStream(new FileOutputStream(String.valueOf(zipFile)))){
+//            zipFile(file,zos);
+//        } catch (IOException e) {
+//            System.out.println("文件夹压缩失败: " + e.getMessage());
 //        }
+//
+//
 //    }
+
 
 }
