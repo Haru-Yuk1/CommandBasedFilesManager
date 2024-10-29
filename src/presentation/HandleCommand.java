@@ -81,9 +81,17 @@ public class HandleCommand {
 
 
 
-    public static void handleCopyDir(DirectoryService directoryService,String arg1,String arg2){
-        // 调用 DirectoryService 的 copyDirectory 方法
-        directoryService.copyDirectory(arg1,arg2);
+    public static void handleCopyDir(DirectoryService directoryService,String...args){
+        if (args.length == 2){
+            // 调用 DirectoryService 的 copyDirectory 方法
+            directoryService.copyDirectory(args[0],args[1]);
+            return;
+        }
+        if (args.length == 3){
+            // 异步复制
+            directoryService.copyDirectory(args[0],args[1],args[2]);
+            return;
+        }
     }
 
     // 文件操作
@@ -110,10 +118,18 @@ public class HandleCommand {
         // 调用 FileService 的 renameFile 方法
         fileService.renameFile(arg1,arg2);
     }
-    public static void handleCopyFile(FileService fileService,String arg1,String arg2){
+    public static void handleCopyFile(FileService fileService,String ...args){
 
-        // 调用 FileService 的 copyFile 方法
-        fileService.copyFile(arg1,arg2);
+        if (args.length == 2){
+            // 调用 DirectoryService 的 copyDirectory 方法
+            fileService.copyFile(args[0],args[1]);
+            return;
+        }
+        if (args.length == 3){
+            // 异步复制
+            fileService.copyFile(args[0],args[1],args[2]);
+            return;
+        }
     }
     public static void handleMoveFile(FileService fileService,String arg1,String arg2){
         // 调用 FileService 的 moveFile 方法

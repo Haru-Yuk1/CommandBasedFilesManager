@@ -16,11 +16,14 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
+import static utils.CommandLineFont.*;
 import static utils.KeyUtils.generateSecretKey;
 
 /*
@@ -31,6 +34,7 @@ import static utils.KeyUtils.generateSecretKey;
 public class FileRepository {
 
     protected final String secretKey = generateSecretKey();
+    private final ExecutorService executorService = Executors.newFixedThreadPool(2);
 
     // 判断路径是否为目录
     public boolean isDirectory(String path) {
@@ -363,8 +367,41 @@ public class FileRepository {
 //            System.out.println("文件夹复制失败: " + e.getMessage());
 //        }
 //    }
+    // 复制操作
+    // 选择前台或后台模式执行文件拷贝
+    public void copyFile(Path sourcePath, Path destinationPath, boolean async) {
+        if (async) {
+            executorService.submit(() -> copyFile(sourcePath, destinationPath));
+        } else {
+            try {
+                long totalBytes = Files.size(sourcePath);   // 文件大小
+                long copiedBytes = 0;               // 已复制的字节数
+                long startTime = System.currentTimeMillis();    // 开始时间
 
-    // 复制文件
+                // 使用 try-with-resources 语句创建输入输出流
+                try (InputStream in = Files.newInputStream(sourcePath);
+                     OutputStream out = Files.newOutputStream(destinationPath)) {
+                    byte[] buffer = new byte[1024];    // 缓冲区
+                    int bytesRead;                    // 每次读取的字节数
+                    // 读取文件内容并写入目标文件
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                        copiedBytes += bytesRead;
+                        SimpleUtils.showProgressBar(copiedBytes, totalBytes);
+                    }
+                }
+
+                long endTime = System.currentTimeMillis();
+                System.out.println("文件复制成功: " + destinationPath);
+                System.out.println("复制时间: " + (endTime - startTime) + " 毫秒");
+            } catch (IOException e) {
+                System.out.println("文件复制失败: " + e.getMessage());
+            }
+        }
+    }
+
+
+    // 复制文件 后台
     public void copyFile(Path sourcePath, Path destinationPath) {
         try {
             long totalBytes = Files.size(sourcePath);   // 文件大小
@@ -380,18 +417,72 @@ public class FileRepository {
                 while ((bytesRead = in.read(buffer)) != -1) {
                     out.write(buffer, 0, bytesRead);
                     copiedBytes += bytesRead;
-                    SimpleUtils.showProgressBar(copiedBytes, totalBytes);
                 }
             }
 
             long endTime = System.currentTimeMillis();
+            System.out.println(ANSI_GREEN+"-------------------------------");
+            System.out.println("异步任务完成");
             System.out.println("文件复制成功: " + destinationPath);
             System.out.println("复制时间: " + (endTime - startTime) + " 毫秒");
+            System.out.println("-------------------------------"+ANSI_RESET);
         } catch (IOException e) {
             System.out.println("文件复制失败: " + e.getMessage());
         }
     }
-    // 拷贝文件夹（深度拷贝）：包括文件夹中的所有文件
+    // 选择前台或后台模式执行文件夹深度拷贝
+    public void copyDirectory(Path sourcePath, Path destinationPath, boolean async) {
+        if (async) {
+            executorService.submit(() -> copyDirectory(sourcePath, destinationPath));
+        } else {
+            try {
+                // 计算文件夹大小
+                long totalBytes = Files.walk(sourcePath)
+                        .filter(Files::isRegularFile)
+                        .mapToLong(p -> {
+                            try {
+                                return Files.size(p);
+                            } catch (IOException e) {
+                                return 0L;
+                            }
+                        }).sum();
+                // 已复制的字节数,必须是原子类型，因为为了保证线程安全
+                AtomicLong copiedBytes = new AtomicLong();
+                long startTime = System.currentTimeMillis();    // 开始时间
+                // 遍历源文件夹
+                Files.walk(sourcePath).forEach(source -> {
+                    Path destination = destinationPath.resolve(sourcePath.relativize(source));
+                    // 复制文件或创建目录
+                    try {
+                        if (Files.isDirectory(source)) {
+                            Files.createDirectories(destination);
+                        } else {
+                            try (InputStream in = Files.newInputStream(source);
+                                 OutputStream out = Files.newOutputStream(destination)) {
+                                byte[] buffer = new byte[1024];
+                                int bytesRead;
+                                while ((bytesRead = in.read(buffer)) != -1) {
+                                    out.write(buffer, 0, bytesRead);
+                                    copiedBytes.addAndGet(bytesRead);
+                                    SimpleUtils.showProgressBar(copiedBytes.get(), totalBytes);
+                                }
+                            }
+                        }
+                    } catch (IOException e) {
+                        System.out.println("文件复制失败: " + e.getMessage());
+                    }
+                });
+
+                long endTime = System.currentTimeMillis();
+                System.out.println("文件夹复制成功: " + destinationPath);
+                System.out.println("复制时间: " + (endTime - startTime) + " 毫秒");
+            } catch (IOException e) {
+                System.out.println("文件夹复制失败: " + e.getMessage());
+            }
+        }
+    }
+
+    // 拷贝文件夹（深度拷贝）：包括文件夹中的所有文件 后台
     public void copyDirectory(Path sourcePath, Path destinationPath) {
         try {
             // 计算文件夹大小
@@ -422,7 +513,7 @@ public class FileRepository {
                             while ((bytesRead = in.read(buffer)) != -1) {
                                 out.write(buffer, 0, bytesRead);
                                 copiedBytes.addAndGet(bytesRead);
-                                SimpleUtils.showProgressBar(copiedBytes.get(), totalBytes);
+
                             }
                         }
                     }
@@ -432,8 +523,12 @@ public class FileRepository {
             });
 
             long endTime = System.currentTimeMillis();
+            System.out.println(ANSI_GREEN+"-------------------------------");
+            System.out.println("异步任务完成");
             System.out.println("文件夹复制成功: " + destinationPath);
             System.out.println("复制时间: " + (endTime - startTime) + " 毫秒");
+            System.out.println("-------------------------------"+ANSI_RESET);
+
         } catch (IOException e) {
             System.out.println("文件夹复制失败: " + e.getMessage());
         }

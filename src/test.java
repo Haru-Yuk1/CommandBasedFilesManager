@@ -1,12 +1,17 @@
 import service.FileService;
+import utils.SimpleUtils;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Base64;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -15,19 +20,18 @@ import java.util.zip.ZipOutputStream;
 import static utils.KeyUtils.generateSecretKey;
 
 public class test {
+    private static final ExecutorService executorService = Executors.newFixedThreadPool(2);
+
     public static void main(String[] args) {
-//        File oldFile = new File("E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\d1\\100.txt");
-//        File newFile = new File("E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\d1\\200.txt");
-//
-//        if (!oldFile.exists()) {
-//            System.out.println("Old file does not exist.");
-//        } else if (newFile.exists()) {
-//            System.out.println("New file already exists.");
-//        } else if (!oldFile.renameTo(newFile)) {
-//            System.out.println("Rename operation failed.");
-//        } else {
-//            System.out.println("Rename operation succeeded.");
-//        }
+        // 文件拷贝操作测试
+        String sourceFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test.zip";
+        String destinationFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test2.zip";
+        copyFile(Path.of(sourceFilePath), Path.of(destinationFilePath), true);
+
+        String sourceFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test.zip";
+        String destinationFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test3.zip";
+        copyFile(Path.of(sourceFilePath2), Path.of(destinationFilePath2),false);
+
 //        // 日期格式化操作
 //        String time = "2024/09/13  19:36";
 //        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy/MM/dd  HH:mm");
@@ -44,17 +48,81 @@ public class test {
 //        String destinationFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\d3";
 //        unzip(sourceFilePath, destinationFilePath);
 
-        //文件加密操作测试
-        String sourceFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\1.txt";
-        String destinationFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\1_encrypted.txt";
-        String key="jMNFutwOiCJO4GqWIWBCPIp9NcvSNghzYXhwPJednRY=";
-        encryptFile(key,sourceFilePath, destinationFilePath);
+//        //文件加密操作测试
+//        String sourceFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\1.txt";
+//        String destinationFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\1_encrypted.txt";
+//        String key="jMNFutwOiCJO4GqWIWBCPIp9NcvSNghzYXhwPJednRY=";
+//        encryptFile(key,sourceFilePath, destinationFilePath);
+//
+//        //文件解密操作测试
+//        String sourceFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\1_encrypted.txt";
+//        String destinationFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\1_decrypted.txt";
+//        String key2="jMNFutwOiCJO4GqWIWBCPIp9NcvSNghzYXhwPJednRY=";
+//        decryptFile(key2,sourceFilePath2, destinationFilePath2);
+    }
 
-        //文件解密操作测试
-        String sourceFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\1_encrypted.txt";
-        String destinationFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\1_decrypted.txt";
-        String key2="jMNFutwOiCJO4GqWIWBCPIp9NcvSNghzYXhwPJednRY=";
-        decryptFile(key2,sourceFilePath2, destinationFilePath2);
+    //文件拷贝
+    public static void copyFile(Path sourcePath, Path destinationPath) {
+
+        try {
+            long totalBytes = Files.size(sourcePath);   // 文件大小
+            long copiedBytes = 0;               // 已复制的字节数
+            long startTime = System.currentTimeMillis();    // 开始时间
+
+            // 使用 try-with-resources 语句创建输入输出流
+            try (InputStream in = Files.newInputStream(sourcePath);
+                 OutputStream out = Files.newOutputStream(destinationPath)) {
+                byte[] buffer = new byte[1024];    // 缓冲区
+                int bytesRead;                    // 每次读取的字节数
+                // 读取文件内容并写入目标文件
+                while ((bytesRead = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, bytesRead);
+                    copiedBytes += bytesRead;
+                }
+            }
+
+            long endTime = System.currentTimeMillis();
+            System.out.println("文件复制成功: " + destinationPath);
+            System.out.println("复制时间: " + (endTime - startTime) + " 毫秒");
+        } catch (IOException e) {
+            System.out.println("文件复制失败: " + e.getMessage());
+        }
+    }
+
+
+    // 复制文件
+    public static void copyFile(Path sourcePath, Path destinationPath, boolean async) {
+        if (async) {
+            executorService.submit(() -> {
+                copyFile(sourcePath, destinationPath);
+            });
+        } else {
+            try {
+                long totalBytes = Files.size(sourcePath);   // 文件大小
+                long copiedBytes = 0;               // 已复制的字节数
+                long startTime = System.currentTimeMillis();    // 开始时间
+
+                // 使用 try-with-resources 语句创建输入输出流
+                try (InputStream in = Files.newInputStream(sourcePath);
+                     OutputStream out = Files.newOutputStream(destinationPath)) {
+                    byte[] buffer = new byte[1024];    // 缓冲区
+                    int bytesRead;                    // 每次读取的字节数
+                    // 读取文件内容并写入目标文件
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                        copiedBytes += bytesRead;
+
+                        SimpleUtils.showProgressBar(copiedBytes, totalBytes);
+                    }
+                }
+
+                long endTime = System.currentTimeMillis();
+                System.out.println("文件复制成功: " + destinationPath);
+                System.out.println("复制时间: " + (endTime - startTime) + " 毫秒");
+            } catch (IOException e) {
+                System.out.println("文件复制失败: " + e.getMessage());
+            }
+        }
     }
 
     public static void zipDirectory(String sourcePath, String destinationPath) {

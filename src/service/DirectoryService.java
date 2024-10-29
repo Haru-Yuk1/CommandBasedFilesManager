@@ -129,6 +129,24 @@ public class DirectoryService {
         getFileRepository().copyDirectory(oldPath, newPath);
     }
 
+    public void copyDirectory(String sourceDirectoryPath, String destinationDirectoryPath,String async) {
+        Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceDirectoryPath);   //原路径
+        Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationDirectoryPath);   //目标路径
+        if(async.equals("async")){
+            getFileRepository().copyDirectory(oldPath, newPath,true);
+        }
+        else{
+            if(async.equals("sync")){
+                getFileRepository().copyDirectory(oldPath, newPath,false);
+            }
+            else{
+                System.out.println("参数错误");
+                return;
+            }
+        }
+
+    }
+
 
     // 压缩操作
     public void zipDirectory(String sourceDirectoryPath, String destinationDirectoryPath) {

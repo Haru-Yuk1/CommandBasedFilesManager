@@ -57,7 +57,24 @@ public class FileService {
     public void copyFile(String sourceFilePath, String destinationFilePath) {
         Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceFilePath);   //原路径
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
-        getFileRepository().copyFile(oldPath, newPath);
+        getFileRepository().copyFile(oldPath, newPath,false);
+    }
+    public void copyFile(String sourceFilePath, String destinationFilePath,String async) {
+        Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceFilePath);   //原路径
+        Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
+        if(async.equals("async")){
+            getFileRepository().copyFile(oldPath, newPath, true);
+        }
+        else{
+            if(async.equals("sync")){
+                getFileRepository().copyFile(oldPath, newPath,false);
+            }
+            else{
+                System.out.println("参数错误");
+                return;
+            }
+        }
+
     }
 
     // 移动文件

@@ -82,10 +82,11 @@ public class MainMenu extends SystemData {
                 input = scanner.nextLine();
             }
             // 将命令和参数分离
-            String[] parts = input.split("\\s+", 3);
+            String[] parts = input.split("\\s+", 4);
             String command = parts[0].toLowerCase();
             String arg1 = parts.length > 1 ? parts[1] : null;
             String arg2 = parts.length > 2 ? parts[2] : null;
+            String arg3 = parts.length > 3 ? parts[3] : null;
             switch (command) {
                 case "help":
                     showHelp();
@@ -182,11 +183,21 @@ public class MainMenu extends SystemData {
                     break;
                 case "copy":
                     if (arg1 != null && arg2 != null) {
-                        if (getDirectoryService().isDirectory(arg1)) {
-                            handleCopyDir(directoryService, arg1, arg2);
-                        } else {
-                            handleCopyFile(fileService, arg1, arg2);
+                        if(arg3!=null) {
+                            if (getDirectoryService().isDirectory(arg1)) {
+                                handleCopyDir(directoryService, arg1, arg2, arg3);
+                            } else {
+                                handleCopyFile(fileService, arg1, arg2, arg3);
+                            }
                         }
+                        else {
+                            if (getDirectoryService().isDirectory(arg1)) {
+                                handleCopyDir(directoryService, arg1, arg2);
+                            } else {
+                                handleCopyFile(fileService, arg1, arg2);
+                            }
+                        }
+
                     } else if (arg1 == null) {
                         System.out.println("请指定源文件路径");
                     } else {
