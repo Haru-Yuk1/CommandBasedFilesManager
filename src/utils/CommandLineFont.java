@@ -1,5 +1,9 @@
 package utils;
 
+/*
+* CommandLineFont 是一个工具类，用于设置控制台输出的字体样式和大小。
+*
+* */
 public class CommandLineFont {
     // 设置控制台输出字体样式
     public static final String ANSI_RESET = "\u001B[0m"; // 重置所有属性

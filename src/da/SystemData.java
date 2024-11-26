@@ -3,6 +3,11 @@ package da;
 import service.DirectoryService;
 import service.FileService;
 
+/*
+* SystemData 是一个数据类，用于存储系统中的数据,保证单例模式。
+*
+* */
+
 public class SystemData {
     private static String currentWorkingDirectory = System.getProperty("user.dir") + "\\workspace";
     private static FileRepository fileRepository = new FileRepository();

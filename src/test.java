@@ -24,13 +24,13 @@ public class test {
 
     public static void main(String[] args) {
         // 文件拷贝操作测试
-        String sourceFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test.zip";
-        String destinationFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test2.zip";
-        copyFile(Path.of(sourceFilePath), Path.of(destinationFilePath), true);
-
-        String sourceFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test.zip";
-        String destinationFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test3.zip";
-        copyFile(Path.of(sourceFilePath2), Path.of(destinationFilePath2),false);
+//        String sourceFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test.zip";
+//        String destinationFilePath = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test2.zip";
+//        copyFile(Path.of(sourceFilePath), Path.of(destinationFilePath), true);
+//
+//        String sourceFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test.zip";
+//        String destinationFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\test3.zip";
+//        copyFile(Path.of(sourceFilePath2), Path.of(destinationFilePath2),false);
 
 //        // 日期格式化操作
 //        String time = "2024/09/13  19:36";
@@ -59,6 +59,7 @@ public class test {
 //        String destinationFilePath2 = "E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\1_decrypted.txt";
 //        String key2="jMNFutwOiCJO4GqWIWBCPIp9NcvSNghzYXhwPJednRY=";
 //        decryptFile(key2,sourceFilePath2, destinationFilePath2);
+//        Path path = Path.of("E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\*.txt");
     }
 
     //文件拷贝

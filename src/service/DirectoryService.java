@@ -108,11 +108,16 @@ public class DirectoryService {
     }
     // 列出指定目录的内容 dir命令 保证 通配符 * ?这种能执行
     public void listDirectoryContentsByPattern(String command,String path) {
+        if(!command.contains("/")){
+            System.out.println("参数错误");
+            return;
+        }
         //检查是否为绝对路径,这里不能用Path.of(path)因为path中有通配符
         File file = new File(path);
         if (!file.isAbsolute()) {
             path = new File(getCurrentWorkingDirectory(), path).getAbsolutePath();
         }
+
         getFileRepository().listFilesByPattern(command,path);
 
     }
@@ -123,10 +128,11 @@ public class DirectoryService {
         getFileRepository().listFilesBySize(getCurrentWorkingDirectory(),minSize,maxSize);
     }
 
+    // 复制文件夹
     public void copyDirectory(String sourceDirectoryPath, String destinationDirectoryPath) {
         Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceDirectoryPath);   //原路径
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationDirectoryPath);   //目标路径
-        getFileRepository().copyDirectory(oldPath, newPath);
+        getFileRepository().copyDirectory(oldPath, newPath,false);
     }
 
     public void copyDirectory(String sourceDirectoryPath, String destinationDirectoryPath,String async) {
@@ -149,6 +155,8 @@ public class DirectoryService {
 
 
     // 压缩操作
+
+
     public void zipDirectory(String sourceDirectoryPath, String destinationDirectoryPath) {
         Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceDirectoryPath);   //原路径
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationDirectoryPath);   //目标路径
@@ -159,4 +167,6 @@ public class DirectoryService {
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationDirectoryPath);   //目标路径
         getFileRepository().unzip(String.valueOf(oldPath), String.valueOf(newPath));
     }
+
+
 }

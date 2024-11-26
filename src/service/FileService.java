@@ -10,11 +10,9 @@ import static da.SystemData.getFileRepository;
 
 
 /*
-* 处理文件和文件夹的增删改查操作
+* FileService 是负责文件相关操作的服务类，包含了文件的基本增删改查功能。
 * */
 public class FileService {
-
-
 
     // 创建文件
     public void createFile(String path) {
@@ -59,6 +57,7 @@ public class FileService {
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
         getFileRepository().copyFile(oldPath, newPath,false);
     }
+
     public void copyFile(String sourceFilePath, String destinationFilePath,String async) {
         Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceFilePath);   //原路径
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
@@ -78,18 +77,17 @@ public class FileService {
     }
 
     // 移动文件
-    public void moveFile(String sourceFilePath, String destinationFilePath) {
+    public void moveFile(String sourceFilePath, String destinationPath) {
         Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceFilePath);   //原路径
-        Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
+        Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationPath);   //目标路径
         getFileRepository().moveFile(oldPath, newPath);
     }
 
-
-    public void unzipFile(String sourceFilePath, String destinationFilePath) {
+    // 压缩文件
+    public void zipFile(String sourceFilePath, String destinationFilePath) {
         Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceFilePath);   //原路径
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
-
-//        getFileRepository().unzipFile(String.valueOf(oldPath), String.valueOf(newPath));
+        getFileRepository().zipFile(String.valueOf(oldPath), String.valueOf(newPath));
     }
 
     // 加密文件
@@ -103,5 +101,8 @@ public class FileService {
         Path oldPath=Path.of(getCurrentWorkingDirectory()).resolve(sourceFilePath);   //原路径
         Path newPath=Path.of(getCurrentWorkingDirectory()).resolve(destinationFilePath);   //目标路径
         getFileRepository().decryptFile(String.valueOf(oldPath), String.valueOf(newPath));
+    }
+    public void shutdown(){
+        getFileRepository().shutdown();
     }
 }

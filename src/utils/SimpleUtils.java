@@ -1,5 +1,10 @@
 package utils;
 
+
+/*
+* SimpleUtils 是一个工具类，包含一些简单的工具方法。
+*
+* */
 public class SimpleUtils {
     //按Enter键继续
     public static void pressEnterToContinue() {

@@ -25,6 +25,7 @@ import java.util.zip.ZipOutputStream;
 
 import static utils.CommandLineFont.*;
 import static utils.KeyUtils.generateSecretKey;
+import static utils.SimpleUtils.pressEnterToContinue;
 
 /*
 *FileRepository 提供底层文件系统操作的实现，直接与文件系统交互，
@@ -35,6 +36,23 @@ public class FileRepository {
 
     protected final String secretKey = generateSecretKey();
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
+    private static final Map<String, String> mimeTypeToChinese = new HashMap<>();
+
+    static {
+        mimeTypeToChinese.put("text/plain", "文本文件");
+        mimeTypeToChinese.put("application/pdf", "PDF文件");
+        mimeTypeToChinese.put("image/jpeg", "JPEG图片");
+        mimeTypeToChinese.put("image/png", "PNG图片");
+        mimeTypeToChinese.put("application/zip", "ZIP压缩文件");
+        mimeTypeToChinese.put("application/x-tar", "TAR压缩文件");
+        mimeTypeToChinese.put("application/x-gzip", "GZIP压缩文件");
+        mimeTypeToChinese.put("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Excel文件");
+        mimeTypeToChinese.put("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "Word文件");
+    }
+
+    private String getChineseFileType(String mimeType) {
+        return mimeTypeToChinese.getOrDefault(mimeType, "未知文件类型");
+    }
 
     // 判断路径是否为目录
     public boolean isDirectory(String path) {
@@ -59,21 +77,52 @@ public class FileRepository {
     public void deleteDirectory(String path) {
         File directory = new File(path);
         if (directory.exists() && directory.isDirectory()) {
-            boolean deleted = directory.delete();
-            System.out.println(deleted ? "文件夹删除成功" : "文件夹删除失败");
+            if (directory.listFiles().length >0) {
+                System.out.println("文件夹非空，请确认是否删除(y/n)");
+                Scanner scanner = new Scanner(System.in);
+                String input = scanner.nextLine();
+                if (input.equalsIgnoreCase("n")) {
+                    System.out.println("取消删除");
+                    return;
+                }
+                if(input.equalsIgnoreCase("y")){
+                    System.out.println("确认删除");
+                    deleteDirectoryFile(directory);
+                }
+            }else{
+                boolean deleted = directory.delete();
+                System.out.println(deleted ? "文件夹删除成功" : "文件夹删除失败");
+            }
+
         } else {
             System.out.println("目录不存在");
         }
+    }
+    private void deleteDirectoryFile(File directory){
+        File[] files = directory.listFiles();
+        if (files != null) {
+            for (File file : files) {
+                if (file.isDirectory()) {
+                    deleteDirectoryFile(file);
+                } else {
+                    file.delete();
+                }
+            }
+        }
+        boolean deleted = directory.delete();
+        System.out.println(deleted ? "文件夹删除成功" : "文件夹删除失败");
+
     }
 
     // 列出目录内容
     public void listFiles(String path) {
         File directory = new File(path);
-        System.out.println("-".repeat(80));
-        System.out.printf("|%-29s|%-9s|%-19s|%-19s|%n", "最后修改时间", "大小", "文件名", "文件类型");
+
 
         File[] files = directory.listFiles();
         if (files != null) {
+            System.out.println("-".repeat(80));
+            System.out.printf("|%-27s|%-8s|%-18s|%-18s|%n", "最后修改时间", "大小", "文件名", "文件类型");
             for (File file : files) {
                 long lastModified = file.lastModified();
                 Instant instant = Instant.ofEpochMilli(lastModified);
@@ -84,7 +133,8 @@ public class FileRepository {
                 if (file.isDirectory()) {
                     System.out.printf("|%-30s|%-10s|%-20s|%-20s|%n", formattedTime, "", file.getName(),"文件夹" );
                 } else {
-                    System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),  URLConnection.guessContentTypeFromName(file.getName()));
+                    System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),
+                            getChineseFileType(URLConnection.guessContentTypeFromName(file.getName())));
                 }
 
             }
@@ -96,14 +146,14 @@ public class FileRepository {
     public void listFiles(String command,String path) {
         File directory = new File(path);
 
-        System.out.printf("|%-29s|%-9s|%-19s|%-19s|%n", "最后修改时间", "大小", "文件名", "文件类型");
+
 
         File[] files = directory.listFiles();
         if (files != null) {
+            System.out.printf("|%-29s|%-9s|%-19s|%-19s|%n", "最后修改时间", "大小", "文件名", "文件类型");
+            //排序，按照命令中的参数排序，如果\ts这种，先按照t排序，再按照s排序
             //如果是-t命令,按时间排序
-            if (command.contains("\\t")){
-                System.out.println("按照时间排序");
-
+            if (command.contains("t")){
                 if(command.contains("r")){
                     Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
                 }else {
@@ -112,15 +162,21 @@ public class FileRepository {
 
             }
             //如果是-s命令,按大小排序
-            else if (command.contains("\\s")) {
-
-                System.out.println("按照大小排序");
-                Arrays.sort(files, Comparator.comparingLong(File::length));
+            else if (command.contains("s")) {
+                if(command.contains("r")){
+                    Arrays.sort(files, Comparator.comparingLong(File::length).reversed());
+                }else {
+                    Arrays.sort(files, Comparator.comparingLong(File::length));
+                }
             }
             //如果是-n命令,按文件名排序
-            else if (Objects.equals(command, "\\n")) {
-                System.out.println("按照文件名排序");
-                Arrays.sort(files, Comparator.comparing(File::getName));
+            else if (command.contains("n")) {
+
+                if(command.contains("r")){
+                    Arrays.sort(files, Comparator.comparing(File::getName).reversed());
+                }else {
+                    Arrays.sort(files, Comparator.comparing(File::getName));
+                }
             }
 
             for (File file : files) {
@@ -133,7 +189,8 @@ public class FileRepository {
                 if (file.isDirectory()) {
                     System.out.printf("|%-30s|%-10s|%-20s|%-20s|%n", formattedTime, "", file.getName(),"文件夹" );
                 } else {
-                    System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),  URLConnection.guessContentTypeFromName(file.getName()));
+                    System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),
+                            getChineseFileType(URLConnection.guessContentTypeFromName(file.getName())));
                 }
 
             }
@@ -152,9 +209,10 @@ public class FileRepository {
         // 将通配符转换为正则表达式
         fileName = fileName.replace(".", "\\.").replace("*", ".*").replace("?", ".");
         File directory = new File(parentPath);
-        System.out.printf("|%-29s|%-9s|%-19s|%-19s|%n", "最后修改时间", "大小", "文件名", "文件类型");
+
         File[] files = directory.listFiles();
         if (files != null) {
+            System.out.printf("|%-29s|%-9s|%-19s|%-19s|%n", "最后修改时间", "大小", "文件名", "文件类型");
             for (File file : files) {
                 if (file.getName().matches(fileName)) {
                     long lastModified = file.lastModified();
@@ -166,7 +224,8 @@ public class FileRepository {
                     if (file.isDirectory()) {
                         System.out.printf("|%-30s|%-10s|%-20s|%-20s|%n", formattedTime, "", file.getName(),"文件夹" );
                     } else {
-                        System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),  URLConnection.guessContentTypeFromName(file.getName()));
+                        System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),
+                                getChineseFileType(URLConnection.guessContentTypeFromName(file.getName())));
                     }
                 }
             }
@@ -188,16 +247,28 @@ public class FileRepository {
         File[] files = directory.listFiles();
         if (files != null) {
             //如果是-t命令,按时间排序
-            if (Objects.equals(command, "\\t")){
-                Arrays.sort(files, Comparator.comparingLong(File::lastModified));
+            if (command.contains("t")){
+                if (command.contains("r")) {
+                    Arrays.sort(files, Comparator.comparingLong(File::lastModified).reversed());
+                } else {
+                    Arrays.sort(files, Comparator.comparingLong(File::lastModified));
+                }
             }
             //如果是-s命令,按大小排序
-            else if (Objects.equals(command, "\\s")) {
-                Arrays.sort(files, Comparator.comparingLong(File::length));
+            else if (command.contains("s")) {
+                if(command.contains("r")){
+                    Arrays.sort(files, Comparator.comparingLong(File::length).reversed());
+                }else {
+                    Arrays.sort(files, Comparator.comparingLong(File::length));
+                }
             }
             //如果是-n命令,按文件名排序
-            else if (Objects.equals(command, "\\n")) {
-                Arrays.sort(files, Comparator.comparing(File::getName));
+            else if (command.contains("n")) {
+                if(command.contains("r")){
+                    Arrays.sort(files, Comparator.comparing(File::getName).reversed());
+                }else {
+                    Arrays.sort(files, Comparator.comparing(File::getName));
+                }
             }
             for (File file : files) {
                 if (file.getName().matches(fileName)) {
@@ -210,7 +281,8 @@ public class FileRepository {
                     if (file.isDirectory()) {
                         System.out.printf("|%-30s|%-10s|%-20s|%-20s|%n", formattedTime, "", file.getName(),"文件夹" );
                     } else {
-                        System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),  URLConnection.guessContentTypeFromName(file.getName()));
+                        System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),
+                                getChineseFileType(URLConnection.guessContentTypeFromName(file.getName())));
                     }
                 }
             }
@@ -237,7 +309,8 @@ public class FileRepository {
                     if (file.isDirectory()) {
                         System.out.printf("|%-30s|%-10s|%-20s|%-20s|%n", formattedTime, "", file.getName(), "文件夹");
                     } else {
-                        System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(), URLConnection.guessContentTypeFromName(file.getName()));
+                        System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),
+                                getChineseFileType(URLConnection.guessContentTypeFromName(file.getName())));
                     }
                 }
             }
@@ -265,7 +338,8 @@ public class FileRepository {
                     if (file.isDirectory()) {
                         System.out.printf("|%-30s|%-10s|%-20s|%-20s|%n", formattedTime, "", file.getName(), "文件夹");
                     } else {
-                        System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(), URLConnection.guessContentTypeFromName(file.getName()));
+                        System.out.printf("|%-30s|%-10d|%-20s|%-20s|%n", formattedTime, file.length(), file.getName(),
+                                getChineseFileType(URLConnection.guessContentTypeFromName(file.getName())));
                     }
                 }
             }
@@ -306,6 +380,18 @@ public class FileRepository {
     // 写入文件内容
     public void writeFile(String content,Path path) {
         try {
+            if (!Files.exists(path)) {
+                System.out.println("文件不存在，是否创建文件(y/n): " + path);
+                Scanner scanner = new Scanner(System.in);
+                String input = scanner.nextLine();
+                if (input.equalsIgnoreCase("n")) {
+                    System.out.println("取消创建文件");
+                    return;
+                }
+                if (input.equalsIgnoreCase("y")) {
+                    Files.createFile(path);
+                }
+            }
             Files.write(path, content.getBytes());
             System.out.println("文件写入成功: " + path);
         } catch (IOException e) {
@@ -317,6 +403,10 @@ public class FileRepository {
     public void readFileContent(Path path) {
 //        Path path = Paths.get(filePath);
         try {
+            if (!Files.exists(path)) {
+                System.out.println("文件不存在: " + path);
+                return;
+            }
             Files.lines(path).forEach(System.out::println);
         } catch (IOException e) {
             System.out.println("读取文件失败: " + e.getMessage());
@@ -483,7 +573,7 @@ public class FileRepository {
     }
 
     // 拷贝文件夹（深度拷贝）：包括文件夹中的所有文件 后台
-    public void copyDirectory(Path sourcePath, Path destinationPath) {
+    private void copyDirectory(Path sourcePath, Path destinationPath) {
         try {
             // 计算文件夹大小
             long totalBytes = Files.walk(sourcePath)
@@ -536,8 +626,41 @@ public class FileRepository {
     // 移动文件
     public void moveFile(Path sourcePath, Path destinationPath) {
         try {
-            Files.move(sourcePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);
-            System.out.println("文件移动成功: " + destinationPath);
+            //如果目标路径不存在，创建新的文件夹
+            if(!Files.exists(destinationPath)){
+                System.out.println("文件夹不存在，是否创建新的文件夹(y/n)");
+                Scanner scanner = new Scanner(System.in);
+                String input = scanner.nextLine();
+                if (input.equalsIgnoreCase("n")) {
+                    System.out.println("取消移动");
+                    return;
+                }
+                if(input.equalsIgnoreCase("y")){
+                    Files.createDirectories(destinationPath);
+                }
+            }
+
+            // 移动文件,由于destinationPath是文件夹，所以需要加上文件名
+            destinationPath = destinationPath.resolve(sourcePath.getFileName());
+
+            //如果目标路径文件已经存在，是否覆盖
+            if(Files.exists(destinationPath)){
+                System.out.println("文件已存在，是否覆盖(y/n)");
+                Scanner scanner = new Scanner(System.in);
+                String input = scanner.nextLine();
+                if (input.equalsIgnoreCase("n")) {
+                    System.out.println("取消移动");
+                    return;
+                }
+                if(input.equalsIgnoreCase("y")){
+                    Files.move(sourcePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);
+                    System.out.println("文件移动成功: " + destinationPath);
+                }
+            }else{
+                Files.move(sourcePath, destinationPath, StandardCopyOption.REPLACE_EXISTING);
+                System.out.println("文件移动成功: " + destinationPath);
+            }
+
         } catch (IOException e) {
             System.out.println("文件移动失败: " + e.getMessage());
         }
@@ -619,15 +742,33 @@ public class FileRepository {
 //            System.out.println("文件夹压缩失败: " + e.getMessage());
 //        }
 //    }
+    // 压缩文件
+    public void zipFile(String sourcePath, String destinationPath) {
+        File sourceFile = new File(sourcePath);
+        File destinationFile = new File(destinationPath);
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(destinationFile))) {
+            try (FileInputStream fis = new FileInputStream(sourceFile)) {
+                ZipEntry zipEntry = new ZipEntry(sourceFile.getName());
+                zos.putNextEntry(zipEntry);
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = fis.read(buffer)) >= 0) {
+                    zos.write(buffer, 0, length);
+                }
+            }
+            System.out.println("文件压缩成功: " + destinationPath);
+        } catch (IOException e) {
+            System.out.println("文件压缩失败: " + e.getMessage());
+        }
+    }
 
     // 压缩文件夹
     public void zipDirectory(String sourcePath, String destinationPath)  {
         File sourceDir=new File(sourcePath);
         File destinationDir=new File(destinationPath);
         if (!destinationDir.exists()) {
-            System.out.println("文件夹不存在，创建新的文件夹");
             boolean created = destinationDir.getParentFile().mkdir();
-            System.out.println(created ? "文件夹创建成功" : "文件夹创建失败");
+
         }
         try(ZipOutputStream zos =new ZipOutputStream(new FileOutputStream(destinationDir))){
             zipDirFile(sourceDir, sourceDir.getName(), zos);
@@ -708,6 +849,11 @@ public class FileRepository {
         }
     }
 
+
+    // 关闭 ExecutorService，释放资源
+    public void shutdown() {
+        executorService.shutdown();
+    }
 //    public static void main(String args[]){
 //        Path file = Path.of("E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\d1\\100.txt");
 //        Path zipFile = Path.of("E:\\Work\\Project\\IDEAProject\\CommandBasedFilesManager\\workspace\\d1\\100.zip");

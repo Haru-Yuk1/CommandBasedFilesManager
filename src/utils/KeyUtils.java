@@ -5,6 +5,10 @@ import javax.crypto.SecretKey;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
+/*
+*
+* KeyUtils 是一个工具类，用于生成密钥。
+* */
 public class KeyUtils {
 
 

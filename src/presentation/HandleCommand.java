@@ -6,7 +6,10 @@ import service.FileService;
 import java.nio.file.Path;
 import java.util.Scanner;
 
-
+/*
+* HandleCommand 是负责处理用户输入的命令的类，包含了处理各种命令的方法。
+*
+* */
 
 public class HandleCommand {
     public static void handleChangeDirectory(DirectoryService directoryService,String arg1) {
@@ -27,16 +30,14 @@ public class HandleCommand {
         System.out.println(directoryService.getWorkingDirectory());
     }
 
-    // 处理dir命令 没有参数
+    // 处理dir命令
     public static void handleDir(DirectoryService directoryService,String ...args){
         if (args.length == 0){
-            System.out.println("目录内容：");
             directoryService.listCurrentDirectoryContents();
             return;
         }
         if (args.length == 1){
-            System.out.println("目录内容：");
-            if(args[0].contains("\\")){
+            if(args[0].contains("\\")&&args[0].length()<4){
                 directoryService.listCurrentDirectoryContents(args[0]);
                 return;
             }
@@ -53,7 +54,6 @@ public class HandleCommand {
 
         }
         if (args.length == 2){
-            System.out.println("目录内容：");
             if(args[1].contains("*")||args[1].contains("?")){
                 directoryService.listDirectoryContentsByPattern(args[0],args[1]);
                 return;
@@ -62,19 +62,16 @@ public class HandleCommand {
             return;
         }
 
-        System.out.println("目录内容：");
         directoryService.listCurrentDirectoryContents();
     }
 
     public static void handleDirByTime(DirectoryService directoryService,String arg1,String arg2){
         arg1=arg1.replaceFirst("-", "  ");
         arg2=arg2.replaceFirst("-", "  ");
-        System.out.println("目录内容：");
         directoryService.listDirectoryContentsByTime(arg1,arg2);
     }
 
     public static void handleDirBySize(DirectoryService directoryService,String arg1,String arg2){
-        System.out.println("目录内容：");
         directoryService.listDirectoryContentsBySize(arg1,arg2);
     }
 
@@ -151,6 +148,9 @@ public class HandleCommand {
     //压缩操作
     public static void handleZip(DirectoryService directoryService,String arg1,String arg2){
         directoryService.zipDirectory(arg1,arg2);
+    }
+    public static void handleZip(FileService fileService,String arg1,String arg2){
+        fileService.zipFile(arg1,arg2);
     }
 
     //解压操作
